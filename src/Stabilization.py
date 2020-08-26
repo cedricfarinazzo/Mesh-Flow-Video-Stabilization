@@ -20,7 +20,7 @@ def measure_performance(method):
         start_time = time.time()
         result = method(*args, **kwargs)
         end_time = time.time()
-        print method.__name__+' has taken: '+str(end_time-start_time)+' sec'
+        print(method.__name__+' has taken: '+str(end_time-start_time)+' sec')
         return result
     return timed
 
@@ -31,8 +31,8 @@ def read_video(cap):
             instantiated with given video
 
     Returns:
-            returns mesh vertex motion vectors & 
-            mesh vertex profiles 
+            returns mesh vertex motion vectors &
+            mesh vertex profiles
     """
 
     # params for ShiTomasi corner detection
@@ -63,8 +63,8 @@ def read_video(cap):
     x_motion_meshes = []; y_motion_meshes = []
 
     # path parameters
-    x_paths = np.zeros((old_frame.shape[0]/PIXELS, old_frame.shape[1]/PIXELS, 1))
-    y_paths = np.zeros((old_frame.shape[0]/PIXELS, old_frame.shape[1]/PIXELS, 1))
+    x_paths = np.zeros((int(old_frame.shape[0]/PIXELS), int(old_frame.shape[1]/PIXELS), 1))
+    y_paths = np.zeros((int(old_frame.shape[0]/PIXELS), int(old_frame.shape[1]/PIXELS), 1))
 
     frame_num = 1
     bar = tqdm(total=frame_count)
@@ -109,7 +109,7 @@ def read_video(cap):
 @measure_performance
 def stabilize(x_paths, y_paths):
     """
-    @param: x_paths is motion vector accumulation on 
+    @param: x_paths is motion vector accumulation on
             mesh vertices in x-direction
     @param: y_paths is motion vector accumulation on
             mesh vertices in y-direction
@@ -150,10 +150,10 @@ def get_frame_warp(x_motion_meshes, y_motion_meshes, x_paths, y_paths, sx_paths,
             mesh vertices in x-direction
     @param: y_motion_meshes is the motion vectors on
             mesh vertices in y-direction
-    @param: x_paths is motion vector accumulation on 
+    @param: x_paths is motion vector accumulation on
             mesh vertices in x-direction
     @param: y_paths is motion vector accumulation on
-            mesh vertices in y-direction    
+            mesh vertices in y-direction
     @param: sx_paths is the optimized motion vector
             accumulation in x-direction
     @param: sx_paths is the optimized motion vector
@@ -181,19 +181,19 @@ def generate_stabilized_video(cap, x_motion_meshes, y_motion_meshes, new_x_motio
             mesh vertices in x-direction
     @param: y_motion_meshes is the motion vectors on
             mesh vertices in y-direction
-    @param: new_x_motion_meshes is the updated motion vectors 
+    @param: new_x_motion_meshes is the updated motion vectors
             on mesh vertices in x-direction to be warped with
-    @param: new_y_motion_meshes is the updated motion vectors 
+    @param: new_y_motion_meshes is the updated motion vectors
             on mesh vertices in y-direction to be warped with
     """
-    
+
     # get video properties
     cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
     frame_rate = int(cap.get(cv2.CAP_PROP_FPS))
     frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    
+
     # generate stabilized video
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
     out = cv2.VideoWriter('../stable.avi', fourcc, frame_rate, (2*frame_width, frame_height))
@@ -208,14 +208,14 @@ def generate_stabilized_video(cap, x_motion_meshes, y_motion_meshes, new_x_motio
             y_motion_mesh = y_motion_meshes[:, :, frame_num]
             new_x_motion_mesh = new_x_motion_meshes[:, :, frame_num]
             new_y_motion_mesh = new_y_motion_meshes[:, :, frame_num]
-            
+
             # mesh warping
             new_frame = mesh_warp_frame(frame, new_x_motion_mesh, new_y_motion_mesh)
             new_frame = new_frame[HORIZONTAL_BORDER:-HORIZONTAL_BORDER, VERTICAL_BORDER:-VERTICAL_BORDER, :]
             new_frame = cv2.resize(new_frame, (frame.shape[1], frame.shape[0]), interpolation=cv2.INTER_CUBIC)
             output = np.concatenate((frame, new_frame), axis=1)
             out.write(output)
-            
+
             # draw old motion vectors
             r = 5
             for i in range(x_motion_mesh.shape[0]):
@@ -235,25 +235,25 @@ def generate_stabilized_video(cap, x_motion_meshes, y_motion_meshes, new_x_motio
             bar.update(1)
         except:
             break
-    
+
     bar.close()
     cap.release()
     out.release()
 
 
 if __name__ == '__main__':
-    
+
     start_time = time.time()
     # get video properties
     file_name = sys.argv[1]
     cap = cv2.VideoCapture(file_name)
-    
+
     # propogate motion vectors and generate vertex profiles
     x_motion_meshes, y_motion_meshes, x_paths, y_paths = read_video(cap)
-    
+
     # stabilize the vertex profiles
     sx_paths, sy_paths = stabilize(x_paths, y_paths)
-    
+
     # visualize optimized paths
     plot_vertex_profiles(x_paths, sx_paths)
 
@@ -262,4 +262,4 @@ if __name__ == '__main__':
 
     # apply updated mesh warps & save the result
     generate_stabilized_video(cap, x_motion_meshes, y_motion_meshes, new_x_motion_meshes, new_y_motion_meshes)
-    print 'Time elapsed: ', str(time.time()-start_time)
+    print('Time elapsed: ', str(time.time()-start_time))
